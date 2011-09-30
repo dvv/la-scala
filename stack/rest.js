@@ -9,6 +9,7 @@
 
 //
 // ReST resource routing
+// TODO: carefully document
 //
 module.exports = function setup(root, options) {
 
@@ -20,6 +21,7 @@ module.exports = function setup(root, options) {
   options = options || {};
 
   // normalize mount points to always end in /
+  if (!root) root = '/rpc/';
   if (root[root.length - 1] !== '/') { root += '/'; }
 
   // whether to PUT /Foo/_new calls Foo.add()
@@ -195,7 +197,7 @@ module.exports = function setup(root, options) {
         }
       }
       res.writeHead(200, {'Content-Type': 'application/json'});
-      res.end(res.fake ? response : JSON.stringify(response));
+      res.end(JSON.stringify(response));
     }
 
   };

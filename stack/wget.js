@@ -8,7 +8,7 @@
  */
 
 //
-// TODO: consider 'request' repo -- just reuse bodyParser
+// TODO: consider using 'request' repo -- just reuse bodyParser
 //
 
 var parseUrl = require('url').parse;
@@ -62,8 +62,7 @@ function request(method, url, data, headers, next) {
   params.method = method;
   // stringify data
   if (data) {
-    // FIXME: way greedy JSON
-    if (typeof data === 'object') {
+    if (Object(data) === data) {
       data = JSON.stringify(data);
       headers['content-type'] = 'application/json';
     } else {

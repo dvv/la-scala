@@ -5,15 +5,32 @@
  * HTTP middleware
  */
 
-var Stack = require('../').Stack;
+var Stack = require('la-scala').Stack;
 function stack() {
 return [
   // report health status to load balancer
-  Stack.haproxy(),
-  // serve static content
-  Stack.static(__dirname + '/public', 'index.html', {
-    maxAge: 0,
+  Stack.plugin('health')(),
+  // body parser
+  Stack.plugin('body')(),
+  // RESTful-ish RPC
+  Stack.plugin('rest')('/rpc', {
+    context: {
+      // GET /foo?bar=baz ==> this.foo.query('bar=baz')
+      foo: {
+        query: function(query, cb) {
+          cb(null, {foo: 'bar'});
+        }
+      }
+    }
   }),
+  /*function(req, res, next) {
+    if (req.url === '/rpc/foo') {
+      res.writeHead(200)
+      res.end('');
+    } else {
+      next();
+    }
+  },*/
 ];
 }
 
@@ -25,10 +42,10 @@ function Node(port) {
 }
 
 // spawn workers
-var s1 = new Node(3001);
-var s2 = new Node(3002);
-var s3 = new Node(3003);
-var s4 = new Node(3004);
+var s1 = new Node(65401);
+var s2 = new Node(65402);
+var s3 = new Node(65403);
+var s4 = new Node(65404);
 
 // REPL for introspection
 var repl = require('repl').start('node> ').context;

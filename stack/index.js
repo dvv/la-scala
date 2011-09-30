@@ -50,7 +50,6 @@ Stack.listen = function start(layers, options) {
   return server;
 };
 
-Stack.haproxy = require('./haproxy');
-Stack.static = require('./static');
-Stack.body = require('./body');
-Stack.userAgent = require('./useragent');
+Stack.plugin = function(name) {
+  return require(__dirname + '/' + name);
+};
