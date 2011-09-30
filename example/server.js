@@ -46,6 +46,8 @@ return [
 ];
 }
 
+// TODO: how to reuse in WebSocket authentication?
+
 function authenticate(session, credentials, cb) {
   // N.B. this is simple "toggle" logic.
   // in real world you should check credentials passed in `credentials`
@@ -63,6 +65,8 @@ function authenticate(session, credentials, cb) {
   cb(session);
 }
 
+// TODO: how to reuse in WebSocket authorization?
+
 function authorize(session, cb) {
   // N.B. this is a simple wrapper for static context
   // in real world you should vary capabilities depending on the
@@ -72,6 +76,8 @@ function authorize(session, cb) {
       // GET /foo?bar=baz ==> this.foo.query('bar=baz')
       foo: {
         query: function(query, cb) {
+          // TODO: my Connection uses .ack(ackId, ...) instead of callbacks
+          // TODO: how to convert?!
           cb(null, {'you are': 'a guest!'});
         }
       },
@@ -88,12 +94,13 @@ function authorize(session, cb) {
 }
 
 function Worker(port, host) {
-  // web server
-  this.http = Stack.listen(stack(), {}, port, host || '127.0.0.1');
-  // websocket server
+  // HTTP server
+  if (!host) host = '127.0.0.1';
+  this.http = Stack.listen(stack(), {}, port, host);
+  // WebSocket server
   //this.ws = ...;
   // notify
-  console.log('Listening to http://*:' + port + '. Use Ctrl+C to stop.');
+  console.log('Listening to http://' + host + ':' + port + '. Use Ctrl+C to stop.');
 }
 
 // spawn workers
