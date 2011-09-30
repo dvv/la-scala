@@ -22,14 +22,15 @@ function errorHandler(req, res, err) {
     res.end();
   }
 };
+
 function Stack(layers) {
   var error = errorHandler;
   var handle = error;
-  layers.reverse().forEach(function (layer) {
+  layers.reverse().forEach(function(layer) {
     var child = handle;
-    handle = function (req, res) {
+    handle = function(req, res) {
       try {
-        layer(req, res, function (err) {
+        layer(req, res, function(err) {
           if (err) { return error(req, res, err); }
           child(req, res);
         });
@@ -43,13 +44,14 @@ function Stack(layers) {
 
 module.exports = Stack;
 
-Stack.listen = function start(layers, options) {
+Stack.listen = function start(layers, options /*, HttpServer args */) {
   if (!options) options = {};
-  var server = require(options.key ? 'https' : 'http').createServer(Stack(layers), options);
+  var server = require(options.key ? 'https' : 'http')
+    .createServer(Stack(layers), options);
   server.listen.apply(server, Array.prototype.slice.call(arguments, 2));
   return server;
 };
 
-Stack.plugin = function(name) {
+Stack.use = function(name) {
   return require(__dirname + '/' + name);
 };

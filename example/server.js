@@ -5,47 +5,102 @@
  * HTTP middleware
  */
 
-var Stack = require('la-scala').Stack;
+var Stack = require('la-scala');
+
 function stack() {
 return [
-  // report health status to load balancer
-  Stack.plugin('health')(),
-  // body parser
-  Stack.plugin('body')(),
-  // RESTful-ish RPC
-  Stack.plugin('rest')('/rpc', {
-    context: {
-      // GET /foo?bar=baz ==> this.foo.query('bar=baz')
-      foo: {
-        query: function(query, cb) {
-          cb(null, {foo: 'bar'});
-        }
-      }
-    }
+  // N.B. static content should be served by special static servers
+  // take a look at dvv/farm
+  /***
+  // serve static content
+  Stack.use('static')(__dirname + '/public', 'index.html', {
+    // don't force caching at client side
+    maxAge: 0,
+    // cache in server memory the whole files below this limit
+    cacheThreshold: 16384
   }),
-  /*function(req, res, next) {
-    if (req.url === '/rpc/foo') {
-      res.writeHead(200)
-      res.end('');
-    } else {
-      next();
-    }
-  },*/
+  ***/
+  // handle session
+  Stack.use('session').session({
+    session_key: 'sid',
+    secret: 'N.B. change-me-in-production-env',
+    path: '/',
+    timeout: 86400000
+  }),
+  // handle authorization
+  Stack.use('session').context({
+    // called to get current user capabilities
+    authorize: authorize
+  }),
+  // body parser
+  Stack.use('body')(),
+  // RESTful-ish RPC
+  Stack.use('rest')('/rpc/'),
+  // handle authentication
+  Stack.use('session').auth('/rpc/auth', {
+    // called when /rpc/auth is accessed
+    authenticate: authenticate
+  }),
+  // report health status to load balancer
+  Stack.use('health')()
 ];
 }
 
-function Node(port) {
+function authenticate(session, credentials, cb) {
+  // N.B. this is simple "toggle" logic.
+  // in real world you should check credentials passed in `credentials`
+  // to decide whether to let user in.
+  // session already set? drop session
+  if (session) {
+    session = null;
+  // no session so far? get new session
+  } else {
+    session = {
+      uid: Math.random().toString().substring(2)
+    };
+  }
+  // set the session
+  cb(session);
+}
+
+function authorize(session, cb) {
+  // N.B. this is a simple wrapper for static context
+  // in real world you should vary capabilities depending on the
+  // current user defined in `session`
+  cb({
+    guest: {
+      // GET /foo?bar=baz ==> this.foo.query('bar=baz')
+      foo: {
+        query: function(query, cb) {
+          cb(null, {'you are': 'a guest!'});
+        }
+      },
+    },
+    user: {
+      // GET /foo?bar=baz ==> this.foo.query('bar=baz')
+      foo: {
+        query: function(query, cb) {
+          cb(null, {'you are': 'an authorized user!'});
+        }
+      },
+    }
+  });
+}
+
+function Worker(port, host) {
   // web server
-  this.http = Stack.listen(stack(), {}, port);
+  this.http = Stack.listen(stack(), {}, port, host || '127.0.0.1');
+  // websocket server
+  //this.ws = ...;
   // notify
   console.log('Listening to http://*:' + port + '. Use Ctrl+C to stop.');
 }
 
 // spawn workers
-var s1 = new Node(65401);
-var s2 = new Node(65402);
-var s3 = new Node(65403);
-var s4 = new Node(65404);
+var s1 = new Worker(65401);
+var s2 = new Worker(65402);
+var s3 = new Worker(65403);
+var s4 = new Worker(65404);
 
 // REPL for introspection
 var repl = require('repl').start('node> ').context;

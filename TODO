@@ -1,2 +1,12 @@
 document! ;)
 package.json
+auth layer
+context helper
+render?
+sockjs
+
+The idea is to provide authors with scalable playground with access to data
+by both RPC (vanilla HTTP, RESTful-ish, etc) and WebSocket.
+Authors shall then code just context handlers and chrome page
+
+db is not relevant to this repo
