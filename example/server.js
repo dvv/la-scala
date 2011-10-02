@@ -2,10 +2,14 @@
 'use strict';
 
 /**
+ *
  * HTTP middleware
+ *
  */
 
 var Stack = require('la-scala');
+
+var sessionHandler;
 
 function stack() {
 return [
@@ -21,7 +25,7 @@ return [
   }),
   ***/
   // handle session
-  Stack.use('session').session({
+  sessionHandler = Stack.use('session').session({
     session_key: 'sid',
     secret: 'N.B. change-me-in-production-env',
     path: '/',
@@ -46,12 +50,19 @@ return [
 ];
 }
 
+/**
+ *
+ * Application
+ *
+ */
+
 // TODO: how to reuse in WebSocket authentication?
 
 function authenticate(session, credentials, cb) {
   // N.B. this is simple "toggle" logic.
   // in real world you should check credentials passed in `credentials`
   // to decide whether to let user in.
+  // just assign `null` to session in case of error.
   // session already set? drop session
   if (session) {
     session = null;
@@ -93,21 +104,61 @@ function authorize(session, cb) {
   });
 }
 
+/**
+ *
+ * Workers
+ *
+ */
+
+var Manager = require('sockjs').Server;
+// connection plugin
+require('connection/sockjs');
+// broadcast plugin
+require('connection/plugins/broadcast');
+// tags plugin
+require('connection/plugins/tags');
+
 function Worker(port, host) {
   // HTTP server
   if (!host) host = '127.0.0.1';
   this.http = Stack.listen(stack(), {}, port, host);
   // WebSocket server
-  //this.ws = ...;
+  this.ws = new Manager({
+    sockjs_url: 'sockjs.js',
+    jsessionid: false,
+    // test
+    //disabled_transports: ['websocket']
+  });
+  this.ws.id = port;
+  // WebSocket connection handler
+  this.ws.installHandlers(this.http, {
+    prefix: '[/]ws'
+  });
+  // upgrade server to manager
+  this.ws.handleConnections(sessionHandler);
+  // handle broadcasting
+  this.ws.handleBroadcast();
+  // listening to catchall event and pass them to context handlers
+  this.ws.on('event', function(conn, event /*, args... */) {
+    console.error('EVENT', Array.prototype.slice.call(arguments, 1));
+    if (event === 'you typed') {
+      //conn.ack(arguments[3], arguments[2]);
+      this.forall(conn.id).send('was typed', arguments[2]);
+    } else if (event === 'dostress') {
+      repl.stress(+arguments[2]);
+    } else {
+      conn.send.apply(conn, Array.prototype.slice.call(arguments, 1));
+    }
+  });
   // notify
   console.log('Listening to http://' + host + ':' + port + '. Use Ctrl+C to stop.');
 }
 
 // spawn workers
 var s1 = new Worker(65401);
-var s2 = new Worker(65402);
+/*var s2 = new Worker(65402);
 var s3 = new Worker(65403);
-var s4 = new Worker(65404);
+var s4 = new Worker(65404);*/
 
 // REPL for introspection
 var repl = require('repl').start('node> ').context;

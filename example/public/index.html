@@ -2,9 +2,46 @@
 <html><head>
   <link rel="stylesheet" media="all" href="less.css"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <script src="jquery-1.6.4.min.js"></script>
+  <script src="sockjs.js"></script>
+  <script src="connection.js"></script>
+  <script>
+    function log() { console.log.apply(console, arguments); }
+    var conn = new Connection(location.href + 'ws');
+    conn.on('event', function(event) {
+      log(' [*] Event: ' + event);
+    });
+    conn.on('open', function() {
+      log(' [*] Opened (using: '+conn.socket.protocol+')');
+    });
+    conn.on('connecting', function() {
+        log(' [*] Connecting (using: '+conn.socket.protocol+')');
+    });
+    conn.on('connect', function() {
+        log(' [*] Connected (using: '+conn.socket.protocol+')');
+    });
+    conn.on('disconnect', function() {
+        log(' [*] Disconnected');
+    });
+    conn.on('close', function() {
+        log(' [*] Closed');
+    });
+    conn.on('was typed', function(result) {
+      log(' [ ] received forallsuch: ' + result);
+    });
+    conn.open();
+    conn.send('auth', document.cookie, function(err, session) {
+      this.session = session;
+      log(' [ ] auth: ', err, session);
+    });
+    conn.send('you typed', 'hello', function(result) {
+      log(' [ ] received: ' + result);
+    });
+   </script>
 </head>
 <body>
-<h6><a style="text-align: right;" href="/rpc/auth">Fake auth to toggle sid cookie</a></h6>
+<h2>La Scala example</h2>
+<h4><a style="text-align: right;" href="/rpc/auth">Fake auth to toggle sid cookie</a></h4>
 Hello, World!
 </body>
 </html>

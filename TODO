@@ -9,4 +9,6 @@ The idea is to provide authors with scalable playground with access to data
 by both RPC (vanilla HTTP, RESTful-ish, etc) and WebSocket.
 Authors shall then code just context handlers and chrome page
 
+needa unify websocket calls and rpc
+
 db is not relevant to this repo
