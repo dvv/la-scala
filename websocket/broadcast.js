@@ -1,5 +1,14 @@
 'use strict';
 
+/*!
+ *
+ * Connection broadcasting plugin
+ *
+ * Copyright(c) 2011 Vladimir Dronnikov <dronnikov@gmail.com>
+ * MIT Licensed
+ *
+ */
+
 /**
  * Codec for broadcasting messages
  *
@@ -43,7 +52,6 @@ var Manager = require('./');
  */
 
 module.exports = function(options) {
-  if (!this.conns) throw 'Connection plugin must be applied first';
   if (!options) options = {};
   // subscribe to broadcast messages
   var ZMQ = require('zeromq');

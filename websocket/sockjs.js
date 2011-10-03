@@ -58,7 +58,6 @@ Connection.nonce = function() {
  */
 
 function handleSocketMessage(message) {
-//console.log('INMESSAGE', message);
   if (!message) return;
   message = message.data;
   if (!message) return;
@@ -82,6 +81,7 @@ function handleSocketMessage(message) {
  */
 
 function handleSocketClose() {
+  this.emitter('close', this);
 }
 
 /**
@@ -143,54 +143,59 @@ Connection.prototype.ack = function(aid /*, args... */) {
 };
 
 /**
- * Manager
+ * Convert last element of passed arguments array to safe-ack callback
  *
  * @api public
  */
 
-var Manager = require('sockjs').Server;
+Connection.prototype.ack2cb = function(args) {
+  // check if `aid` looks like an id for ack function,
+  // and send ack event if it does
+  var aid = args[args.length-1];
+  if (aid &&
+      String(aid).substring(0, Connection.SERVICE_CHANNEL.length)
+      === Connection.SERVICE_CHANNEL) {
+    args[args.length-1] = this.send.bind(this, aid);
+  }
+  return args;
+};
 
 /**
- * Upgrade this server to handle `this.conns` hash of connections.
- * Connections are authorized via 'auth' message and make their
- * `session` property persistent across reconnections.
+ * WebSocket connections manager
  *
- * @api private
+ * @api public
  */
 
-Manager.prototype.handleConnections = function(sessionHandler) {
-  var manager = this;
+function Manager(httpServer, options) {
+  var server = new (require('sockjs').Server)(options);
+  server.installHandlers(httpServer);
   // maintain connections
+  var mgr = this;
   this.conns = {};
-  this.on('open', function(conn) {
+  // 'open' handler
+  server.on('open', function(conn) {
     // default handlers
     conn.on('message', handleSocketMessage.bind(conn));
-    conn.emitter = manager.emit.bind(manager);
-    // 'auth' handler
-    conn.on('auth', function(secret, aid) {
-console.error('AUTH', secret);
-      // TODO: get rid of assumption on cookie-sessions!
-      // fake HTTP request with passed cookies
-      var req = { headers: { cookie: secret } };
-      sessionHandler(req, {}, function() {
-        // set req.session and req.context as if we used HTTP request
-        conn.session = req.session || {};
-        conn.context = req.context || {};
-        // ack auth
-        conn.ack(aid, null, conn.session);
-      });
-    });
-    // 'close' handler
-    conn.on('close', function() {
-      // unregister connection
-console.error('CLOSE', conn.id, manager.id, conn.session);
-      delete manager.conns[conn.id];
-    });
+    conn.on('close', handleSocketClose.bind(conn));
+    conn.emitter = mgr.emit.bind(mgr);
     // register connection
-console.error('OPEN', conn.id, manager.id, conn.session);
-    manager.conns[conn.id] = conn;
+    mgr.debug('OPEN', conn.id);
+    mgr.conns[conn.id] = conn;
+    mgr.emit('open', conn);
   });
-};
+  // 'close' handler
+  mgr.on('close', function(conn) {
+    // unregister connection
+    this.debug('CLOSE', conn.id);
+    delete mgr.conns[conn.id];
+  });
+}
+
+// inherits from EventEmitter
+Manager.prototype.__proto__ = process.EventEmitter.prototype;
+
+// contains Connection
+Manager.Connection = Connection;
 
 /**
  * Attach named plugin to this manager.
@@ -201,6 +206,21 @@ console.error('OPEN', conn.id, manager.id, conn.session);
 Manager.prototype.use = function(pluginName, options) {
   require(__dirname + '/' + pluginName).call(this, options);
   return this;
+};
+
+/**
+ * Log passed arguments.
+ *
+ * @api public
+ */
+
+// TODO: obey SockJS intrinsic logger, when it will appear ;)
+Manager.prototype.log = function() {
+  console.log.apply(console, ['MGR', this.id].concat(arguments));
+};
+
+Manager.prototype.debug = function() {
+  console.log.apply(console, ['MGR', this.id].concat(arguments));
 };
 
 module.exports = Manager;

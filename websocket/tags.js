@@ -1,16 +1,26 @@
 'use strict';
 
-var db = require('redis').createClient();
+/*!
+ *
+ * Connection tagging plugin
+ *
+ * Copyright(c) 2011 Vladimir Dronnikov <dronnikov@gmail.com>
+ * MIT Licensed
+ *
+ */
 
 var slice = Array.prototype.slice;
 
+var db = require('redis').createClient();
+
+var Manager = require('./');
+var Connection = Manager.Connection;
+
 /**
+ *
  * Connection
  *
- * @api public
  */
-
-var Connection = require('sockjs/lib/transport').Session;
 
 /**
  * Tag this connection
@@ -101,12 +111,10 @@ function select(rules, cb) {
 }
 
 /**
+ *
  * Manager
  *
- * @api public
  */
-
-var Manager = require('./');
 
 /**
  * Upgrade this manager to handle connections tagging

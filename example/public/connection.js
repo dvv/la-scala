@@ -16,8 +16,7 @@
  * @api private
  */
 
-var hasSockJS = typeof SockJS !== 'undefined';
-var Transport = hasSockJS ? SockJS : (window.WebSocket || window.MozWebSocket);
+var Transport = SockJS;
 
 /**
  * Well-known useful shortcuts and shims
@@ -61,10 +60,6 @@ exports.Connection = Connection;
 function Connection(url) {
   // use provided URL, or guess one
   this.url = url || window.location.href;
-  // SockJS doesn't use ws[s]://
-  if (!hasSockJS) {
-    this.url = this.url.replace(/^http/, 'ws');
-  }
   // outgoing messages queue
   // TODO: implement outgoing async filters?
   this._queue = [];
@@ -161,16 +156,6 @@ Connection.nonce = function() {
 };
 
 /**
- * Define codec for messages
- *
- * @api private
- */
-
-// TODO: shim for older browsers
-Connection.encode = JSON.stringify;
-Connection.decode = JSON.parse;
-
-/**
  * Socket: handle incoming messages
  *
  * @api private
@@ -181,15 +166,6 @@ function handleSocketMessage(event) {
   var message = event.data;
   if (!message) return;
   var args;
-  // N.B. Connection.decode may throw
-  if (!hasSockJS) {
-    try {
-      message = Connection.decode(message);
-    } catch(e) {
-      console.error('ONMESSAGEERR', e, message);
-      message = [];
-    }
-  }
   // event?
   if (isArray(args = message)) {
     // named event
@@ -250,8 +226,6 @@ function handleSocketClose(ev) {
   }
   // orderly closed?
   var wasClean = ev.wasClean || ev.status === 1000;
-console.log('WASCLEAN?', wasClean, ev.status, ev);
-wasClean = false;
   // reconnect is not disabled and not orderly closed?
   if (this.reconnectTimeout && !wasClean) {
     // shedule reconnect
@@ -303,23 +277,6 @@ Connection.prototype.close = function() {
     delete this.reconnectTimeout;
     // send orderly disconnect event
     this.socket.close();
-  }
-  return this;
-};
-
-/**
- * Close and reopen the connection
- *
- * @param {Number} delay
- *    If specified, delay reopening for specified amount of ms.
- *
- * @api public
- */
-
-Connection.prototype.reopen = function(delay) {
-  if (this.socket) {
-    this.reconnectTimeout = delay || Connection.RECONNECT_TIMEOUT;
-    this.socket.close(1001);
   }
   return this;
 };
@@ -404,7 +361,7 @@ Connection.prototype.flush = function() {
     // N.B. WebSocket guarantees that once `#send()` returns, the
     // message is put on wire
     try {
-      this.socket.send(hasSockJS ? args : Connection.encode(args));
+      this.socket.send(args);
       // message is sent ok. prune it from queue
       this._queue.shift();
     } catch(err) {
@@ -429,6 +386,24 @@ Connection.prototype.ack = function(aid /*, args... */) {
     this.send.apply(this, arguments);
   }
   return this;
+};
+
+/**
+ * Convert last element of passed arguments array to safe-ack callback
+ *
+ * @api public
+ */
+
+Connection.prototype.ack2cb = function(args) {
+  // check if `aid` looks like an id for ack function,
+  // and send ack event if it does
+  var aid = args[args.length-1];
+  if (aid &&
+      String(aid).substring(0, Connection.SERVICE_CHANNEL.length)
+      === Connection.SERVICE_CHANNEL) {
+    args[args.length-1] = bind(this.send, this, aid);
+  }
+  return args;
 };
 
 })(this);

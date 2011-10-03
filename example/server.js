@@ -84,9 +84,7 @@ function authorize(session, cb) {
       // GET /foo?bar=baz ==> this.foo.query('bar=baz')
       foo: {
         query: function(query, cb) {
-          // TODO: my Connection uses .ack(ackId, ...) instead of callbacks
-          // TODO: how to convert?!
-          cb(null, {'you are': 'a guest!'});
+          cb && cb(null, {'you are': 'a guest!'});
         }
       },
     },
@@ -94,7 +92,7 @@ function authorize(session, cb) {
       // GET /foo?bar=baz ==> this.foo.query('bar=baz')
       foo: {
         query: function(query, cb) {
-          cb(null, {'you are': 'an authorized user!'});
+          cb && cb(null, {'you are': 'an authorized user!'});
         }
       },
     }
@@ -115,7 +113,7 @@ function Worker(port, host) {
   if (!host) host = '127.0.0.1';
   this.http = Stack.listen(stack(), {}, port, host);
   // WebSocket server
-  this.ws = new Manager({
+  this.ws = new Manager(this.http, {
     prefix: '[/]ws',
     // FIXME: should equal to such used in index.html
     // TODO: serve bundled version: sockjs.js + connection.js + context.js?
@@ -125,22 +123,23 @@ function Worker(port, host) {
     //disabled_transports: ['websocket']
   });
   this.ws.id = port;
-  // WebSocket connection handler
-  this.ws.installHandlers(this.http);
-  // upgrade server to manager
-  this.ws.handleConnections(sessionHandler);
+  // handle authentication
+  this.ws.use('auth', sessionHandler);
   // handle broadcasting
   this.ws.use('broadcast');
   // handle tagging
-  ///this.ws.use('tags');
+  this.ws.use('tags');
+  // handle context
+  this.ws.use('context'); // TODO: this should require context.js in HTML
   // custom handlers
   this.ws.on('open', function(conn) {
-    conn.on('rpc', function() {
-      console.log('RPC', conn.id, conn.context, Array.prototype.slice.call(arguments));
-    });
   });
   this.ws.on('event', function(conn, event) {
-    console.log('EVENT', event, conn.id, Array.prototype.slice.call(arguments, 2));
+    this.log('EVENT', event, conn.id, Array.prototype.slice.call(arguments, 2));
+    if (event === 'invoke1') {
+      //this.send.apply(this, ['invoke'].concat(Array.prototype.slice.call(arguments, 2)));
+      conn.send.apply(conn, ['invoke'].concat(Array.prototype.slice.call(arguments, 2)));
+    }
   });
   // notify
   console.log('Listening to http://' + host + ':' + port + '. Use Ctrl+C to stop.');
@@ -161,4 +160,7 @@ repl.s = function() {
 };
 repl.foo = function() {
   return s1.ws.send('foo', 1, 2, 3);
+};
+repl.inv = function() {
+  s1.ws.send('invoke1', ['bar','baz'],1,2,3,4);
 };
