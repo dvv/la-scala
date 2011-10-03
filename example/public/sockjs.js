@@ -590,7 +590,6 @@ SockJS.prototype._try_next_protocol = function(close_event) {
         }
         // Some protocols require chunking, we may need to run the
         // test beforehand.
-console.log('TRYING', protocol);
         if (SockJS[protocol] &&
               SockJS[protocol].need_chunking === true &&
               that._options.chunking === undefined) {

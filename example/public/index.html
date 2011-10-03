@@ -18,7 +18,11 @@
         log(' [*] Connecting (using: '+conn.socket.protocol+')');
     });
     conn.on('connect', function() {
-        log(' [*] Connected (using: '+conn.socket.protocol+')');
+      log(' [*] Connected (using: '+conn.socket.protocol+')');
+      this.send('auth', document.cookie, function(err, session) {
+        this.session = session;
+        log(' [ ] auth: ', err, session);
+      });
     });
     conn.on('disconnect', function() {
         log(' [*] Disconnected');
@@ -30,13 +34,6 @@
       log(' [ ] received forallsuch: ' + result);
     });
     conn.open();
-    conn.send('auth', document.cookie, function(err, session) {
-      this.session = session;
-      log(' [ ] auth: ', err, session);
-    });
-    conn.send('you typed', 'hello', function(result) {
-      log(' [ ] received: ' + result);
-    });
    </script>
 </head>
 <body>

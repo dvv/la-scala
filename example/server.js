@@ -24,15 +24,12 @@ return [
     cacheThreshold: 16384
   }),
   ***/
-  // handle session
+  // handle session and context
   sessionHandler = Stack.use('session').session({
     session_key: 'sid',
     secret: 'N.B. change-me-in-production-env',
     path: '/',
-    timeout: 86400000
-  }),
-  // handle authorization
-  Stack.use('session').context({
+    timeout: 86400000,
     // called to get current user capabilities
     authorize: authorize
   }),
@@ -82,7 +79,7 @@ function authorize(session, cb) {
   // N.B. this is a simple wrapper for static context
   // in real world you should vary capabilities depending on the
   // current user defined in `session`
-  cb({
+  var context = {
     guest: {
       // GET /foo?bar=baz ==> this.foo.query('bar=baz')
       foo: {
@@ -101,7 +98,8 @@ function authorize(session, cb) {
         }
       },
     }
-  });
+  };
+  cb(session && session.uid ? context.user : context.guest);
 }
 
 /**
@@ -110,13 +108,7 @@ function authorize(session, cb) {
  *
  */
 
-var Manager = require('sockjs').Server;
-// connection plugin
-require('connection/sockjs');
-// broadcast plugin
-require('connection/plugins/broadcast');
-// tags plugin
-require('connection/plugins/tags');
+var Manager = require('la-scala/websocket');
 
 function Worker(port, host) {
   // HTTP server
@@ -124,6 +116,9 @@ function Worker(port, host) {
   this.http = Stack.listen(stack(), {}, port, host);
   // WebSocket server
   this.ws = new Manager({
+    prefix: '[/]ws',
+    // FIXME: should equal to such used in index.html
+    // TODO: serve bundled version: sockjs.js + connection.js + context.js?
     sockjs_url: 'sockjs.js',
     jsessionid: false,
     // test
@@ -131,24 +126,21 @@ function Worker(port, host) {
   });
   this.ws.id = port;
   // WebSocket connection handler
-  this.ws.installHandlers(this.http, {
-    prefix: '[/]ws'
-  });
+  this.ws.installHandlers(this.http);
   // upgrade server to manager
   this.ws.handleConnections(sessionHandler);
   // handle broadcasting
-  this.ws.handleBroadcast();
-  // listening to catchall event and pass them to context handlers
-  this.ws.on('event', function(conn, event /*, args... */) {
-    console.error('EVENT', Array.prototype.slice.call(arguments, 1));
-    if (event === 'you typed') {
-      //conn.ack(arguments[3], arguments[2]);
-      this.forall(conn.id).send('was typed', arguments[2]);
-    } else if (event === 'dostress') {
-      repl.stress(+arguments[2]);
-    } else {
-      conn.send.apply(conn, Array.prototype.slice.call(arguments, 1));
-    }
+  this.ws.use('broadcast');
+  // handle tagging
+  ///this.ws.use('tags');
+  // custom handlers
+  this.ws.on('open', function(conn) {
+    conn.on('rpc', function() {
+      console.log('RPC', conn.id, conn.context, Array.prototype.slice.call(arguments));
+    });
+  });
+  this.ws.on('event', function(conn, event) {
+    console.log('EVENT', event, conn.id, Array.prototype.slice.call(arguments, 2));
   });
   // notify
   console.log('Listening to http://' + host + ':' + port + '. Use Ctrl+C to stop.');
@@ -164,3 +156,9 @@ var s4 = new Worker(65404);*/
 var repl = require('repl').start('node> ').context;
 process.stdin.on('close', process.exit);
 repl.s1 = s1;
+repl.s = function() {
+  return s1.ws.conns[Object.keys(s1.ws.conns)[0]];
+};
+repl.foo = function() {
+  return s1.ws.send('foo', 1, 2, 3);
+};

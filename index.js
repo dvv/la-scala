@@ -1,5 +1,5 @@
 'use strict';
 
-var Stack = require('./stack');
+var Stack = require('./http');
 
 module.exports = Stack;
