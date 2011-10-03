@@ -1,6 +1,6 @@
 <!doctype html>
 <html><head>
-  <link rel="stylesheet" media="all" href="less.css"/>
+  <!--link rel="stylesheet" media="all" href="less.css"/-->
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="jquery-1.6.4.min.js"></script>
   <script src="sockjs.js"></script>
@@ -8,6 +8,7 @@
   <script src="context.js"></script>
   <script>
     function log() { console.log.apply(console, arguments); }
+(function(){
     var conn = new Connection(location.href + 'ws');
     conn.on('event', function(event) {
       log(' [*] Event: ' + event);
@@ -21,8 +22,8 @@
     conn.on('connect', function() {
       log(' [*] Connected');
       this.send('auth', document.cookie, function(err, session) {
-        this.session = session;
-        log(' [ ] auth: ', err, session);
+        //this.session = session;
+        log(' [ ] auth: ', err, session, this);
       });
     });
     conn.on('disconnect', function() {
@@ -35,6 +36,15 @@
       log(' [ ] received forallsuch: ' + result);
     });
     conn.open();
+    conn.update({
+      bar: {
+        baz: function() {
+          console.log('BAR', arguments);
+        }
+      }
+    });
+    window.conn = conn;
+})();
    </script>
 </head>
 <body>

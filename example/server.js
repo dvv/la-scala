@@ -42,6 +42,12 @@ return [
     // called when /rpc/auth is accessed
     authenticate: authenticate
   }),
+  // handle chrome page
+  Stack.use('chrome')({
+    map: {
+      '/': __dirname + '/template/index.html'
+    }
+  }),
   // report health status to load balancer
   Stack.use('health')()
 ];

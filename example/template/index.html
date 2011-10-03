@@ -50,6 +50,6 @@
 <body>
 <h2>La Scala example</h2>
 <h4><a style="text-align: right;" href="/rpc/auth">Fake auth to toggle sid cookie</a></h4>
-Hello, World!
+Hello, {{= ctx.session ? ctx.session : 'World!' }}
 </body>
 </html>
