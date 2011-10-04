@@ -2299,7 +2299,7 @@ function update(changes, options, callback) {
   // apply changes
   if (isArray(changes)) {
     for (var j = 0; j < changes.length; ++j) {
-      // N.B. c === `null` purges the current context
+      // N.B. c === null purges the current context
       if (changes[j] === null) {
         for (var i in context) delete context[i];
       }
@@ -2392,6 +2392,9 @@ if (typeof window !== 'undefined') {
     //redis.get(conn.id, function(err, result) {
     //  conn.update(result);
     //});
+
+    // notify
+    this.log('WebSocket context plugin enabled');
 
     // return manager
     return manager;

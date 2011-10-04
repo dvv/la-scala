@@ -203,11 +203,11 @@ Manager.prototype.use = function(pluginName, options) {
 
 // TODO: obey SockJS intrinsic logger, when it will appear ;)
 Manager.prototype.log = function() {
-  console.log.apply(console, ['MGR', this.id].concat(arguments));
+  console.log.apply(console, ['MGR', this.id].concat(slice.call(arguments)));
 };
 
 Manager.prototype.debug = function() {
-  console.log.apply(console, ['MGR', this.id].concat(arguments));
+  console.log.apply(console, ['MGR', this.id].concat(slice.call(arguments)));
 };
 
 module.exports = Manager;

@@ -12,8 +12,7 @@
     "formidable": "latest",
     "simple-mime": "latest",
     "useragent": "latest",
-    "sockjs": "sockjs",
-    "sockjs-client": "sockjs-client",
+    "sockjs": "latest",
     "redis": "latest",
     "bison": "latest"
     }

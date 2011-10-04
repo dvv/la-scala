@@ -20,7 +20,9 @@
     conn.on('connect', function() {
       log(' [*] Connected');
       this.send('auth', document.cookie, function(err, context) {
-        this.context = context;
+        if (!this.update) this.context = context;
+        $('#hello').html('Hi, ' + this.context.session.uid || 'guest');
+        $('#caps').html('Your caps: ' + JSON.stringify(context));
         log(' [ ] auth: ', err, context, this);
       });
     });
@@ -48,6 +50,7 @@
 <body>
 <h2>La Scala example</h2>
 <h4><a style="text-align: right;" href="/rpc/auth">Fake auth to toggle sid cookie</a></h4>
-Hello, World!
+<p id="hello">Hello, World!</p>
+<p id="caps"></p>
 </body>
 </html>

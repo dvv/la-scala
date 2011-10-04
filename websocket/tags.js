@@ -124,6 +124,8 @@ function select(rules, cb) {
 
 module.exports = function(options) {
   if (!this.send) throw 'Broadcast plugin must be applied first';
+  // notify
+  this.log('WebSocket tagging plugin enabled');
   return this;
 };
 

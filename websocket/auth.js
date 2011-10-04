@@ -23,13 +23,24 @@ module.exports = function(sessionHandler) {
       sessionHandler(req, {}, function() {
         // use req.session and req.context
         conn.session = req.session || {};
-        conn.context = req.context || {};
+        var context = req.context || {};
+        // context plugin enabled?
+        if (manager.plugins.context) {
+          // share connection context
+          conn.update(context);
+        // no context plugin?
+        } else {
+          // set connection local context
+          conn.context = context;
+        }
         // ack auth
-        conn.ack(aid, null, conn.context);
+        conn.ack(aid, null, context);
       });
 
     });
   });
+  // notify
+  this.log('WebSocket authentication plugin enabled');
 
   return this;
 

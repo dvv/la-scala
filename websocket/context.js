@@ -312,7 +312,7 @@ function createContext(proto, options) {
   // attach event handlers.
   // N.B. we can prevent context from automaticlly applying
   // changes coming from remote side
-  ///if (!options.protect) this.on('update', update);
+  if (!options.protect) this.on('update', update);
   this.on('invoke', bind(invoke, this));
   // provide shortcut functions
   this.update = update;
@@ -336,7 +336,6 @@ if (typeof window !== 'undefined') {
 
     // create shared context
     createContext.call(conn, options.context, options);
-    conn.on('update', update);
     return conn;
 
   };
@@ -358,11 +357,6 @@ if (typeof window !== 'undefined') {
     manager.on('open', function(conn) {
       // create shared context
       createContext.call(conn, options.context, options);
-      // broadcast updates
-      conn.on('update', function(ochanges, options, aid) {
-        //manager.select().send('update', ochanges, options);
-        this.ack(aid);
-      });
     });
 
     // N.B. the rest of logic is left to user code.
@@ -371,6 +365,9 @@ if (typeof window !== 'undefined') {
     //redis.get(conn.id, function(err, result) {
     //  conn.update(result);
     //});
+
+    // notify
+    this.log('WebSocket context plugin enabled');
 
     // return manager
     return manager;

@@ -139,8 +139,8 @@ function Worker(port, host) {
   this.ws.use('broadcast');
   // handle tagging
   this.ws.use('tags');
-  /// handle context
-  ///this.ws.use('context', { protect: false, replicate: ['session', 'id'] });
+  // handle context
+  this.ws.use('context', { protect: false, replicate: ['session', 'id'] });
   // custom handlers
   this.ws.on('open', function(conn) {
     conn.on('change', function() {

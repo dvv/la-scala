@@ -52,19 +52,43 @@ var Manager = require('./');
  */
 
 module.exports = function(options) {
+
   if (!options) options = {};
-  // subscribe to broadcast messages
-  var ZMQ = require('zeromq');
-  var sub = ZMQ.createSocket('sub');
-  sub.connect(options.broker || 'tcp://127.0.0.1:65455');
-  sub.subscribe('');
-  sub.on('message', handleBroadcastMessage.bind(this));
-  // provide publisher
-  var pub = ZMQ.createSocket('pub');
-  pub.connect(options.broker || 'tcp://127.0.0.1:65454');
-  this.publish = pub.send.bind(pub);
+
+  // zeromq-based relay
+  if (options.zeromq && require('zeromq')) {
+
+    // subscribe to broadcast messages
+    var ZMQ = require('zeromq');
+    var sub = ZMQ.createSocket('sub');
+    sub.connect(options.broker || 'tcp://127.0.0.1:65455');
+    sub.subscribe('');
+    sub.on('message', handleBroadcastMessage.bind(this));
+    // provide publisher
+    var pub = ZMQ.createSocket('pub');
+    pub.connect(options.broker || 'tcp://127.0.0.1:65454');
+    this.publish = pub.send.bind(pub);
+    // notify
+    this.log('WebSocket broadcast plugin enabled: zeromq');
+
+  // redis-based pubsub
+  } else {
+
+    // subscribe to broadcast messages
+    var Redis = require('redis');
+    var sub = Redis.createClient(options.broker);
+    sub.subscribe('bcast');
+    sub.on('message', handleBroadcastMessage.bind(this));
+    // provide publisher
+    var db = Redis.createClient(options.broker);
+    this.publish = db.publish.bind(db, 'bcast');
+    // notify
+    this.log('WebSocket broadcast plugin enabled: redis');
+
+  }
+
   return this;
-}
+};
 
 function handleBroadcastMessage(message) {
   var self = this;
@@ -128,26 +152,8 @@ Manager.prototype.getIds = function(rules, cb) {
 
 Manager.prototype.send = function(/* args... */) {
   var obj = slice.call(arguments);
-  if (this._forall) {
-    obj = {
-      r: this._forall,
-      d: obj
-    };
-    delete this._forall;
-  }
   var s = codec.encode(obj);
   return this.publish(s);
-};
-
-/**
- * Broadcast arguments to all connections of specified `id`
- *
- * @api public
- */
-
-Manager.prototype.forall = function(id) {
-  this._forall = slice.call(arguments);
-  return this;
 };
 
 /**
