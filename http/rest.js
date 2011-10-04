@@ -162,7 +162,14 @@ module.exports = function setup(root, options) {
     if (options.passContext) params.unshift(context);
     params.push(respond);
     //console.log('RPC?', params);
-    resource[method].apply(null, params);
+    ///resource[method].apply(null, params);
+    // FIXME: reconsider?
+    // we pass fake `this` with `ack` method to unify continuation
+    // from RPC and WebSocket invocation.
+    // N.B. since RPC is of less priority, let it be slighter slower
+    resource[method].apply({ack: function(aid, err, result) {
+      respond(err, result);
+    }}, params);
 
     //
     // wrap the response to JSONRPC format,

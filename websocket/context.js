@@ -7,7 +7,7 @@
  *
  */
 
-(function(undefined) {
+(function(Connection, undefined) {
 'use strict';
 
 //
@@ -303,6 +303,24 @@ function update(changes, options, callback) {
   return this;
 };
 
+/**
+ * Convert last element of passed arguments array to safe-ack callback
+ *
+ * @api public
+ */
+
+Connection.prototype.ack2cb = function(args) {
+  // check if `aid` looks like an id for ack function,
+  // and send ack event if it does
+  var aid = args[args.length-1];
+  if (aid &&
+      String(aid).substring(0, Connection.SERVICE_CHANNEL.length)
+      === Connection.SERVICE_CHANNEL) {
+    args[args.length-1] = bind(this.send, this, aid);
+  }
+  return args;
+};
+
 //
 // create shared context
 //
@@ -324,7 +342,7 @@ function createContext(proto, options) {
 //
 if (typeof window !== 'undefined') {
 
-  var _Connection = window.Connection;
+  var _Connection = Connection;
   window.Connection = function(url, options) {
 
     // set default options
@@ -375,4 +393,4 @@ if (typeof window !== 'undefined') {
 
 }
 
-})();
+})(typeof window !== 'undefined' ? Connection : require('./').Connection);

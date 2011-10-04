@@ -114,7 +114,7 @@ Connection.prototype.send = function(/* args... */) {
 };
 
 /**
- * Safely ack event execution
+ * Safely ack execution of event
  *
  * @api public
  */
@@ -131,21 +131,45 @@ Connection.prototype.ack = function(aid /*, args... */) {
 };
 
 /**
- * Convert last element of passed arguments array to safe-ack callback
+ * JSON.stringify passed object converting any functions into
+ * event handlers for this connection, and replacing them with
+ * corresponding service event names
  *
  * @api public
  */
 
-Connection.prototype.ack2cb = function(args) {
-  // check if `aid` looks like an id for ack function,
-  // and send ack event if it does
-  var aid = args[args.length-1];
-  if (aid &&
-      String(aid).substring(0, Connection.SERVICE_CHANNEL.length)
-      === Connection.SERVICE_CHANNEL) {
-    args[args.length-1] = this.send.bind(this, aid);
+Connection.prototype.serializeWithFunctions = function(obj) {
+  var self = this;
+  function replacer(k, v) {
+    if (typeof v === 'function') {
+      var aid = Connection.SERVICE_CHANNEL + Connection.nonce();
+      self.on(aid, v);
+      v = aid;
+    }
+    return v;
   }
-  return args;
+  return JSON.stringify(obj, replacer);
+};
+
+/**
+ * JSON.parse passed string converting any values looking like service
+ * event names to real functions which, when called, send these events
+ * to the remote side
+ *
+ * @api public
+ */
+
+Connection.prototype.deserializeWithFunctions = function(str) {
+  var self = this;
+  function reviver(k, v) {
+    if (v &&
+        String(v).substring(0, Connection.SERVICE_CHANNEL.length)
+        === Connection.SERVICE_CHANNEL) {
+      v = self.send.bind(self, v);
+    }
+    return v;
+  }
+  return JSON.parse(str, reviver);
 };
 
 /**

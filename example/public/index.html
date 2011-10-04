@@ -19,11 +19,12 @@
     });
     conn.on('connect', function() {
       log(' [*] Connected');
-      this.send('auth', document.cookie, function(err, context) {
-        if (!this.update) this.context = context;
-        $('#hello').html('Hi, ' + this.context.session.uid || 'guest');
-        $('#caps').html('Your caps: ' + JSON.stringify(context));
-        log(' [ ] auth: ', err, context, this);
+      this.send('auth', document.cookie, function(err, contextString) {
+        if (err) return;
+        this.context = this.deserializeWithFunctions(contextString);
+        $('#hello').html('Hi, ' + (this.context.uid || 'guest') + '!');
+        $('#caps').html('Your caps: ' + contextString);
+        log(' [ ] auth: ', err, this.context);
       });
     });
     conn.on('disconnect', function() {
@@ -36,13 +37,6 @@
       log(' [ ] received forallsuch: ' + result);
     });
     conn.open();
-    conn.update({
-      bar: {
-        baz: function() {
-          console.log('BAR', arguments);
-        }
-      }
-    });
     window.conn = conn;
 })();
    </script>

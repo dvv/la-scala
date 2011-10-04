@@ -21,20 +21,11 @@ module.exports = function(sessionHandler) {
       var req = { headers: { cookie: secret } };
       // pass this request to vanilla HTTP session handler
       sessionHandler(req, {}, function() {
-        // use req.session and req.context
-        conn.session = req.session || {};
+        // use req.context
         var context = req.context || {};
-        // context plugin enabled?
-        if (manager.plugins.context) {
-          // share connection context
-          conn.update(context);
-        // no context plugin?
-        } else {
-          // set connection local context
-          conn.context = context;
-        }
-        // ack auth
-        conn.ack(aid, null, context);
+        conn.context = context;
+        // return serialized context
+        conn.ack(aid, null, conn.serializeWithFunctions(context));
       });
 
     });

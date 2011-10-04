@@ -61,8 +61,6 @@ return [
  *
  */
 
-// TODO: how to reuse in WebSocket authentication?
-
 function authenticate(session, credentials, cb) {
   // N.B. this is simple "toggle" logic.
   // in real world you should check credentials passed in `credentials`
@@ -81,33 +79,37 @@ function authenticate(session, credentials, cb) {
   cb(session);
 }
 
-// TODO: how to reuse in WebSocket authorization?
-
 function authorize(session, cb) {
   // N.B. this is a simple wrapper for static context
   // in real world you should vary capabilities depending on the
   // current user defined in `session`
-  var context = {
-    guest: {
-      session: session || {},
+  if (session && session.uid) {
+    cb({
+      uid: session.uid,
       // GET /foo?bar=baz ==> this.foo.query('bar=baz')
       foo: {
-        query: function(query, cb) {
-          typeof cb === 'function' && cb(null, {'you are': 'a guest!'});
+        query: function(query, aid) {
+          this.ack(aid, null, {'you are': 'an authorized user!'});
         }
       },
-    },
-    user: {
-      session: session || {},
+      bar: {
+        baz: {
+          add: function(data, aid) {
+            this.ack(aid, {'nope': 'nomatter you are an authorized user ;)'});
+          }
+        }
+      },
+    });
+  } else {
+    cb({
       // GET /foo?bar=baz ==> this.foo.query('bar=baz')
       foo: {
-        query: function(query, cb) {
-          typeof cb === 'function' && cb(null, {'you are': 'an authorized user!'});
+        query: function(query, aid) {
+          this.ack(aid, null, {'you are': 'a guest!'});
         }
       },
-    }
-  };
-  cb(session && session.uid ? context.user : context.guest);
+    })
+  }
 }
 
 /**
@@ -126,7 +128,7 @@ function Worker(port, host) {
   this.ws = new Manager(this.http, {
     prefix: '[/]ws',
     // FIXME: should equal to such used in index.html
-    // TODO: serve bundled version: sockjs.js + connection.js + context.js?
+    // TODO: serve bundled version: sockjs.js + connection.js?
     sockjs_url: 'sockjs.js',
     jsessionid: false,
     // test
@@ -139,8 +141,6 @@ function Worker(port, host) {
   this.ws.use('broadcast');
   // handle tagging
   this.ws.use('tags');
-  // handle context
-  this.ws.use('context', { protect: false, replicate: ['session', 'id'] });
   // custom handlers
   this.ws.on('open', function(conn) {
     conn.on('change', function() {
