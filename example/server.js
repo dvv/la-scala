@@ -42,12 +42,14 @@ return [
     // called when /rpc/auth is accessed
     authenticate: authenticate
   }),
-  // handle chrome page
-  Stack.use('chrome')({
-    map: {
-      '/': __dirname + '/template/index.html'
+  function(req, res, next) {
+    if (req.url === '/ws/sockjs.js') {
+      res.writeHead(200);
+      res.end('Caught you!');
+    } else {
+      next();
     }
-  }),
+  },
   // report health status to load balancer
   Stack.use('health')()
 ];
@@ -87,18 +89,20 @@ function authorize(session, cb) {
   // current user defined in `session`
   var context = {
     guest: {
+      session: session || {},
       // GET /foo?bar=baz ==> this.foo.query('bar=baz')
       foo: {
         query: function(query, cb) {
-          cb && cb(null, {'you are': 'a guest!'});
+          typeof cb === 'function' && cb(null, {'you are': 'a guest!'});
         }
       },
     },
     user: {
+      session: session || {},
       // GET /foo?bar=baz ==> this.foo.query('bar=baz')
       foo: {
         query: function(query, cb) {
-          cb && cb(null, {'you are': 'an authorized user!'});
+          typeof cb === 'function' && cb(null, {'you are': 'an authorized user!'});
         }
       },
     }
@@ -135,16 +139,20 @@ function Worker(port, host) {
   this.ws.use('broadcast');
   // handle tagging
   this.ws.use('tags');
-  // handle context
-  this.ws.use('context'); // TODO: this should require context.js in HTML
+  /// handle context
+  ///this.ws.use('context', { protect: false, replicate: ['session', 'id'] });
   // custom handlers
   this.ws.on('open', function(conn) {
+    conn.on('change', function() {
+      console.log('CHANGE', arguments);
+    });
   });
   this.ws.on('event', function(conn, event) {
     this.log('EVENT', event, conn.id, Array.prototype.slice.call(arguments, 2));
     if (event === 'invoke1') {
-      //this.send.apply(this, ['invoke'].concat(Array.prototype.slice.call(arguments, 2)));
       conn.send.apply(conn, ['invoke'].concat(Array.prototype.slice.call(arguments, 2)));
+    } else if (event === 'change') {
+      ///conn.send.apply(conn, ['invoke'].concat(Array.prototype.slice.call(arguments, 2)));
     }
   });
   // notify

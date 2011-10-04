@@ -1,0 +1,30 @@
+{
+    "name": "la-scala"
+  , "version": "0.0.1"
+  , "description": "A WebSocket messaging made easy"
+  , "keywords": ["websocket", "stud"]
+  , "author": "Vladimir Dronnikov <dronnikov@gmail.com>"
+  , "contributors": [
+    ]
+  , "dependencies": {
+    "cookie-sessions": "latest",
+    "qs": "latest",
+    "formidable": "latest",
+    "simple-mime": "latest",
+    "useragent": "latest",
+    "sockjs": "sockjs",
+    "sockjs-client": "sockjs-client",
+    "redis": "latest",
+    "bison": "latest"
+    }
+  , "repositories": [{
+      "type": "git",
+      "url" : "https://github.com/dvv/la-scala.git"
+    }]
+  , "licenses": [{
+      "type" : "MIT",
+      "url" : "https://github.com/dvv/la-scala/raw/master/LICENSE"
+    }]
+  , "scripts": {
+    }
+}

@@ -63,6 +63,7 @@ module.exports = function(options) {
   var pub = ZMQ.createSocket('pub');
   pub.connect(options.broker || 'tcp://127.0.0.1:65454');
   this.publish = pub.send.bind(pub);
+  return this;
 }
 
 function handleBroadcastMessage(message) {
@@ -79,7 +80,6 @@ function handleBroadcastMessage(message) {
       var conn = conns[cids[c]];
       if (!conn) continue;
       conn.emit.apply(conn, args);
-      conn.emitter.apply(null, ['event', conn].concat(args));
     }
   }
   // broadcast to all connections if no selection rules specified

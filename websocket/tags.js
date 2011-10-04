@@ -124,6 +124,7 @@ function select(rules, cb) {
 
 module.exports = function(options) {
   if (!this.send) throw 'Broadcast plugin must be applied first';
+  return this;
 };
 
 /**

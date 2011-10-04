@@ -272,7 +272,7 @@ function update(changes, options, callback) {
   // apply changes
   if (isArray(changes)) {
     for (var j = 0; j < changes.length; ++j) {
-      // N.B. c === `null` purges the current context
+      // N.B. c === null purges the current context
       if (changes[j] === null) {
         for (var i in context) delete context[i];
       }
@@ -307,10 +307,12 @@ function update(changes, options, callback) {
 // create shared context
 //
 
-function createContext(proto) {
+function createContext(proto, options) {
   this.context = proto || {};
-  // attach event handlers
-  this.on('update', update);
+  // attach event handlers.
+  // N.B. we can prevent context from automaticlly applying
+  // changes coming from remote side
+  ///if (!options.protect) this.on('update', update);
   this.on('invoke', bind(invoke, this));
   // provide shortcut functions
   this.update = update;
@@ -333,7 +335,8 @@ if (typeof window !== 'undefined') {
     var conn = new _Connection(url);
 
     // create shared context
-    createContext.call(conn, options.context);
+    createContext.call(conn, options.context, options);
+    conn.on('update', update);
     return conn;
 
   };
@@ -347,21 +350,26 @@ if (typeof window !== 'undefined') {
 
     // set default options
     options = extend({
+      protect: true
     }, options || {});
 
-    // level ground logic
-    var manager = this;
     // upgrade connecting clients to have context
-    manager.on('open', function(client) {
+    var manager = this;
+    manager.on('open', function(conn) {
       // create shared context
-      createContext.call(client, options.context);
+      createContext.call(conn, options.context, options);
+      // broadcast updates
+      conn.on('update', function(ochanges, options, aid) {
+        //manager.select().send('update', ochanges, options);
+        this.ack(aid);
+      });
     });
 
     // N.B. the rest of logic is left to user code.
     // just add another event listeners!
     // E.G. we could fetch the state:
-    //redis.get(client.cid, function(err, result) {
-    //  client.update(result);
+    //redis.get(conn.id, function(err, result) {
+    //  conn.update(result);
     //});
 
     // return manager

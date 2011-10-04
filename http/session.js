@@ -81,7 +81,9 @@ module.exports.auth = function(url, options) {
           req.session = session;
         }
         // go back
-        res.writeHead(302, {location: req.headers.referer || req.headers.referrer});
+        res.writeHead(302, {
+          location: req.headers.referer || req.headers.referrer
+        });
         res.end();
       });
     } else {

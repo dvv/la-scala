@@ -3,9 +3,7 @@
   <!--link rel="stylesheet" media="all" href="less.css"/-->
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="jquery-1.6.4.min.js"></script>
-  <script src="sockjs.js"></script>
   <script src="connection.js"></script>
-  <script src="context.js"></script>
   <script>
     function log() { console.log.apply(console, arguments); }
 (function(){
@@ -21,9 +19,9 @@
     });
     conn.on('connect', function() {
       log(' [*] Connected');
-      this.send('auth', document.cookie, function(err, session) {
-        //this.session = session;
-        log(' [ ] auth: ', err, session, this);
+      this.send('auth', document.cookie, function(err, context) {
+        this.context = context;
+        log(' [ ] auth: ', err, context, this);
       });
     });
     conn.on('disconnect', function() {
@@ -50,6 +48,6 @@
 <body>
 <h2>La Scala example</h2>
 <h4><a style="text-align: right;" href="/rpc/auth">Fake auth to toggle sid cookie</a></h4>
-Hello, {{= ctx.session ? ctx.session : 'World!' }}
+Hello, World!
 </body>
 </html>
