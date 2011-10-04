@@ -147,14 +147,6 @@ function Worker(port, host) {
       console.log('CHANGE', arguments);
     });
   });
-  this.ws.on('event', function(conn, event) {
-    this.log('EVENT', event, conn.id, Array.prototype.slice.call(arguments, 2));
-    if (event === 'invoke1') {
-      conn.send.apply(conn, ['invoke'].concat(Array.prototype.slice.call(arguments, 2)));
-    } else if (event === 'change') {
-      ///conn.send.apply(conn, ['invoke'].concat(Array.prototype.slice.call(arguments, 2)));
-    }
-  });
   // notify
   console.log('Listening to http://' + host + ':' + port + '. Use Ctrl+C to stop.');
 }
