@@ -11,20 +11,8 @@
 // bundled creationix/Stack
 //
 
-function errorHandler(req, res, err) {
-  if (err) {
-    var reason = err.stack || err;
-    console.error('\n' + reason + '\n');
-    res.writeHead(500, {'Content-Type': 'text/plain'});
-    res.end(reason + '\n');
-  } else {
-    res.writeHead(404, {'Content-Type': 'text/plain'});
-    res.end();
-  }
-};
-
 function Stack(layers) {
-  var error = errorHandler;
+  var error = Stack.errorHandler;
   var handle = error;
   layers.reverse().forEach(function(layer) {
     var child = handle;
@@ -41,6 +29,18 @@ function Stack(layers) {
   });
   return handle;
 }
+
+Stack.errorHandler = function(req, res, err) {
+  if (err) {
+    var reason = err.stack || err;
+    console.error('\n' + reason + '\n');
+    res.writeHead(500, {'Content-Type': 'text/plain'});
+    res.end(reason + '\n');
+  } else {
+    res.writeHead(404, {'Content-Type': 'text/plain'});
+    res.end();
+  }
+};
 
 module.exports = Stack;
 
